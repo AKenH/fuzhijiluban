@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复制功能测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .test-text {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+        }
+
+        .instructions {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #4285f4;
+        }
+
+        .debug-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📋 复制记录板测试页面</h1>
+
+    <div class="instructions">
+        <h3>使用说明：</h3>
+        <ol>
+            <li>选择下面的任何一段文字</li>
+            <li>会出现一个蓝色的"📋 复制"按钮</li>
+            <li>点击复制按钮</li>
+            <li>检查控制台日志查看调试信息</li>
+            <li>尝试粘贴到其他地方验证复制是否成功</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>基础测试文本</h2>
+        <div class="test-text">
+            这是一段用于测试复制功能的简单文本。请选择这些文字，然后点击出现的复制按钮。
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>特殊字符测试</h2>
+        <div class="test-text">
+            特殊字符测试：中文、英文、123456、!@#$%^&*()、【】《》""''、emoji表情😊🎉🔥
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>多行文本测试</h2>
+        <div class="test-text">
+            第一行文本内容
+            第二行文本内容
+            第三行文本内容，包含一些更长的描述文字用于测试多行选择的复制功能。
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>链接和邮箱测试</h2>
+        <div class="test-text">
+            网站：https://www.example.com
+            邮箱：test@example.com
+            电话：+86 138-0013-8000
+        </div>
+    </div>
+
+    <div class="debug-info">
+        <h3>调试信息：</h3>
+        <p>1. 打开浏览器开发者工具（F12）查看Console标签</p>
+        <p>2. 在控制台输入 <code>window.copyRecorder</code> 查看插件实例</p>
+        <p>3. 选择文本后应该看到"选中文本:"的日志</p>
+        <p>4. 点击按钮后应该看到"复制按钮被点击"的日志</p>
+        <p>5. 复制成功后应该看到绿色或红色的提示消息</p>
+    </div>
+
+    <script>
+        // 添加一些辅助调试功能
+        console.log('复制功能测试页面已加载');
+        console.log('插件实例可以通过 window.copyRecorder 访问');
+
+        // 定期检查插件是否已加载
+        let checkCount = 0;
+        const checkInterval = setInterval(() => {
+            checkCount++;
+            if (window.copyRecorder) {
+                console.log('✓ 插件已成功加载');
+                clearInterval(checkInterval);
+            } else if (checkCount > 10) {
+                console.log('⚠️ 插件可能未正确加载，请检查插件是否已启用');
+                clearInterval(checkInterval);
+            }
+        }, 500);
+    </script>
+</body>
+</html>

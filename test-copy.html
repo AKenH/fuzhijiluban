@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复制功能测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f8f9fa;
+        }
+
+        .test-section {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .test-text {
+            background: #f1f3f4;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            user-select: text;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #1d1d1f;
+            font-size: 36px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: #1d1d1f;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #2196f3;
+            margin-bottom: 30px;
+        }
+
+        .debug-panel {
+            background: #263238;
+            color: #aed581;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        button {
+            background: #007aff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 复制功能测试页面</h1>
+
+    <div class="instructions">
+        <h3>使用说明：</h3>
+        <ol>
+            <li>选择下面任何一段文字</li>
+            <li>会出现"复制"按钮</li>
+            <li>点击按钮进行复制</li>
+            <li>查看控制台日志了解详细过程</li>
+            <li>尝试粘贴验证复制是否成功</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>基础复制测试</h2>
+        <div class="test-text">
+            这是一段用于测试复制功能的普通文本。选择这段文字后应该会出现蓝色的"复制"按钮。点击按钮后文本应该被复制到剪贴板。
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>特殊字符测试</h2>
+        <div class="test-text">
+            特殊字符测试：中文、英文、123456、!@#$%^&*()、【】《》""''、emoji表情😊🎉🔥、换行符测试
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>长文本测试</h2>
+        <div class="test-text">
+            这是一段较长的文本，用于测试复制功能在处理长文本时的表现。包含多种不同类型的内容：
+
+            数字：1234567890
+            符号：~!@#$%^&*()_+-=[]{}|;':",./<>?
+            中文字符：简体中文和繁體中文
+            英文字母：ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+            表情符号：😀😃😄😁😆😅😂🤣😊😇
+
+            选择这段长文本进行复制测试，可以验证复制功能是否能够正确处理各种复杂内容。
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>调试信息</h2>
+        <button onclick="checkPluginStatus()">检查插件状态</button>
+        <button onclick="clearDebugLog()">清空调试日志</button>
+        <div id="debugPanel" class="debug-panel" style="margin-top: 20px;">
+            等待调试信息...
+        </div>
+    </div>
+
+    <script>
+        let debugPanel = document.getElementById('debugPanel');
+        let logMessages = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            logMessages.push(logEntry);
+
+            debugPanel.textContent = logMessages.join('\n');
+            debugPanel.scrollTop = debugPanel.scrollHeight;
+            console.log(logEntry);
+        }
+
+        function clearDebugLog() {
+            logMessages = [];
+            debugPanel.textContent = '调试日志已清空...';
+        }
+
+        function checkPluginStatus() {
+            log('=== 开始检查插件状态 ===');
+
+            // 检查Chrome API
+            if (typeof chrome !== 'undefined') {
+                log('✓ Chrome对象可用');
+
+                if (chrome.runtime) {
+                    log('✓ Chrome runtime API可用');
+
+                    // 测试发送消息
+                    try {
+                        chrome.runtime.sendMessage({type: 'PING'}, (response) => {
+                            if (chrome.runtime.lastError) {
+                                log(`✗ 消息发送失败: ${chrome.runtime.lastError.message}`, 'error');
+                            } else {
+                                log('✓ 消息发送成功');
+                                log(`响应: ${JSON.stringify(response)}`);
+                            }
+                        });
+                    } catch (error) {
+                        log(`✗ 消息发送异常: ${error.message}`, 'error');
+                    }
+                } else {
+                    log('✗ Chrome runtime API不可用', 'error');
+                }
+            } else {
+                log('✗ Chrome对象不可用', 'error');
+            }
+
+            // 检查内容脚本
+            if (window.copyRecorder) {
+                log('✓ 复制记录器已加载');
+                log(`方法: ${Object.getOwnPropertyNames(window.copyRecorder).filter(name => typeof window.copyRecorder[name] === 'function').join(', ')}`);
+            } else {
+                log('✗ 复制记录器未加载', 'error');
+                log('可能原因：插件未正确安装或页面未完全加载');
+            }
+
+            // 检查剪贴板API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                log('✓ 现代剪贴板API可用');
+            } else {
+                log('⚠️ 现代剪贴板API不可用，将使用降级方案', 'warning');
+            }
+
+            log('=== 插件状态检查完成 ===');
+        }
+
+        // 监听选择事件
+        document.addEventListener('mouseup', () => {
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            if (selectedText) {
+                log(`检测到文本选择: "${selectedText.substring(0, 50)}${selectedText.length > 50 ? '...' : ''}"`);
+            }
+        });
+
+        // 页面加载时的初始化检查
+        window.addEventListener('load', () => {
+            log('页面加载完成');
+            setTimeout(checkPluginStatus, 1000);
+        });
+    </script>
+</body>
+</html>

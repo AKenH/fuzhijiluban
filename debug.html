@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复制记录板调试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .debug-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .test-text {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border: 1px solid #b0d4f1;
+            user-select: text;
+        }
+
+        .debug-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+            margin-top: 20px;
+        }
+
+        .error-info {
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #dc3545;
+            margin-top: 20px;
+        }
+
+        .success-info {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+            margin-top: 20px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #logOutput {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 复制记录板调试页面</h1>
+
+    <div class="debug-section">
+        <h2>1. 基础功能测试</h2>
+        <p>选择下面这段文字，应该会出现复制按钮：</p>
+        <div class="test-text">
+            这是一段用于测试复制功能的文字。请选择这段文字，然后点击出现的蓝色复制按钮。
+        </div>
+    </div>
+
+    <div class="debug-section">
+        <h2>2. 权限检查</h2>
+        <button onclick="checkPermissions()">检查插件权限</button>
+        <button onclick="checkContentScript()">检查内容脚本</button>
+        <button onclick="testStorage()">测试存储功能</button>
+        <div id="permissionStatus"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>3. 调试日志</h2>
+        <button onclick="clearLog()">清空日志</button>
+        <div id="logOutput"></div>
+    </div>
+
+    <div class="debug-info">
+        <h3>调试步骤：</h3>
+        <ol>
+            <li>打开浏览器开发者工具（F12）</li>
+            <li>查看Console标签是否有错误</li>
+            <li>选择文字测试复制按钮</li>
+            <li>点击插件图标测试弹出面板</li>
+            <li>点击设置按钮测试设置页面</li>
+        </ol>
+    </div>
+
+    <div class="error-info">
+        <h3>常见错误：</h3>
+        <ul>
+            <li><strong>内容脚本未加载</strong>：刷新页面或重新加载插件</li>
+            <li><strong>权限不足</strong>：检查manifest.json中的权限配置</li>
+            <li><strong>存储访问失败</strong>：清除浏览器数据重新测试</li>
+            <li><strong>弹出面板错误</strong>：检查popup.js中的语法错误</li>
+        </ul>
+    </div>
+
+    <script>
+        let logOutput = document.getElementById('logOutput');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logOutput.textContent += logMessage;
+            logOutput.scrollTop = logOutput.scrollHeight;
+            console.log(logMessage);
+        }
+
+        function clearLog() {
+            logOutput.textContent = '';
+            log('日志已清空');
+        }
+
+        function checkPermissions() {
+            log('检查插件权限...');
+
+            // 检查chrome APIs是否可用
+            const requiredAPIs = [
+                'chrome',
+                'chrome.storage',
+                'chrome.runtime',
+                'chrome.clipboard',
+                'chrome.tabs'
+            ];
+
+            let missingAPIs = [];
+            requiredAPIs.forEach(api => {
+                try {
+                    if (eval(`typeof ${api} === 'undefined'`)) {
+                        missingAPIs.push(api);
+                    }
+                } catch (e) {
+                    missingAPIs.push(api);
+                }
+            });
+
+            if (missingAPIs.length === 0) {
+                log('✓ 所有必需的Chrome API都可用', 'success');
+                document.getElementById('permissionStatus').innerHTML =
+                    '<div class="success-info">✓ 权限检查通过</div>';
+            } else {
+                log(`✗ 缺少API: ${missingAPIs.join(', ')}`, 'error');
+                document.getElementById('permissionStatus').innerHTML =
+                    `<div class="error-info">✗ 缺少权限: ${missingAPIs.join(', ')}</div>`;
+            }
+        }
+
+        function checkContentScript() {
+            log('检查内容脚本...');
+
+            if (window.copyRecorder) {
+                log('✓ 内容脚本已加载', 'success');
+                log(`插件实例: ${typeof window.copyRecorder}`);
+                log(`插件方法: ${Object.getOwnPropertyNames(window.copyRecorder).join(', ')}`);
+            } else {
+                log('✗ 内容脚本未加载', 'error');
+                log('尝试解决：刷新页面或重新加载插件');
+            }
+        }
+
+        function testStorage() {
+            log('测试存储功能...');
+
+            try {
+                const testData = {
+                    test: 'hello',
+                    timestamp: new Date().toISOString()
+                };
+
+                chrome.storage.local.set({ testKey: testData }, () => {
+                    log('✓ 写入存储成功', 'success');
+
+                    chrome.storage.local.get(['testKey'], (result) => {
+                        if (result.testKey) {
+                            log('✓ 读取存储成功', 'success');
+                            log(`数据: ${JSON.stringify(result.testKey)}`);
+
+                            // 清理测试数据
+                            chrome.storage.local.remove(['testKey']);
+                            log('✓ 清理测试数据完成');
+                        } else {
+                            log('✗ 读取存储失败', 'error');
+                        }
+                    });
+                });
+            } catch (error) {
+                log(`✗ 存储测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            log('调试页面已加载');
+            log('开始自动检查...');
+
+            setTimeout(() => {
+                checkPermissions();
+                setTimeout(() => {
+                    checkContentScript();
+                    setTimeout(() => {
+                        testStorage();
+                        log('自动检查完成');
+                    }, 500);
+                }, 500);
+            }, 500);
+        });
+
+        // 监听选择事件
+        document.addEventListener('mouseup', () => {
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            if (selectedText) {
+                log(`检测到文本选择: "${selectedText.substring(0, 20)}..."`);
+            }
+        });
+    </script>
+</body>
+</html>

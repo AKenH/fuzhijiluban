@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 520px;
+            min-height: 620px;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background: #fbfbfd;
+            color: #1d1d1f;
+            font-weight: 400;
+            letter-spacing: -0.022em;
+            line-height: 1.47059;
+        }
+        
+        .container {
+            padding: 60px 40px;
+            max-width: 440px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 36px;
+            font-weight: 600;
+            color: #1d1d1f;
+            letter-spacing: 0.009em;
+            margin-bottom: 52px;
+            text-align: center;
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        .setting-group {
+            margin-bottom: 44px;
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        .setting-group:nth-child(2) { animation-delay: 0.1s; }
+        .setting-group:nth-child(3) { animation-delay: 0.2s; }
+        .setting-group:nth-child(4) { animation-delay: 0.3s; }
+        
+        .setting-title {
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1d1d1f;
+            font-size: 19px;
+            letter-spacing: -0.022em;
+        }
+        
+        .setting-description {
+            font-size: 15px;
+            color: #86868b;
+            margin-bottom: 24px;
+            font-weight: 400;
+            letter-spacing: -0.016em;
+            line-height: 1.4;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(110deg, #007aff 0%, #0051d5 100%);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: -0.016em;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2), 0 1px 2px rgba(0, 122, 255, 0.1);
+        }
+        
+        button:hover {
+            background: linear-gradient(110deg, #0051d5 0%, #0041b5 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3), 0 2px 4px rgba(0, 122, 255, 0.15);
+        }
+        
+        button:active {
+            background: linear-gradient(110deg, #0041b5 0%, #0031a5 100%);
+            transform: translateY(0);
+        }
+        
+        .save-path {
+            margin-top: 16px;
+            padding: 16px 20px;
+            background: #f2f2f7;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", monospace;
+            color: #48484a;
+            letter-spacing: -0.022em;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+        
+        .number-input-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .number-input-group label {
+            font-size: 15px;
+            color: #1d1d1f;
+            font-weight: 400;
+            letter-spacing: -0.016em;
+            min-width: 120px;
+        }
+        
+        input[type="number"] {
+            padding: 12px 16px;
+            border: 1px solid #d2d2d7;
+            border-radius: 12px;
+            font-size: 17px;
+            background: #ffffff;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            font-weight: 400;
+            letter-spacing: -0.022em;
+            width: 80px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #007aff;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 16px 0;
+        }
+        
+        input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            appearance: none;
+            border: 2px solid #d2d2d7;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        input[type="checkbox"]:checked {
+            background: #007aff;
+            border-color: #007aff;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
+        }
+        
+        input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        input[type="checkbox"]:hover {
+            border-color: #007aff;
+        }
+        
+        label {
+            font-size: 17px;
+            color: #1d1d1f;
+            cursor: pointer;
+            font-weight: 400;
+            letter-spacing: -0.022em;
+            flex: 1;
+        }
+        
+        .status {
+            margin-top: 16px;
+            font-size: 15px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+            font-weight: 500;
+            letter-spacing: -0.016em;
+        }
+        
+        .status.success {
+            background: #e6f4ea;
+            color: #1e7e34;
+            display: block;
+            border: 1px solid rgba(30, 126, 52, 0.2);
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+            display: block;
+            border: 1px solid rgba(211, 47, 47, 0.2);
+        }
+        
+        #saveSettingsBtn {
+            width: 100%;
+            padding: 16px 32px;
+            background: linear-gradient(110deg, #007aff 0%, #0051d5 100%);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: -0.022em;
+            margin-top: 32px;
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s forwards;
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.2), 0 2px 8px rgba(0, 122, 255, 0.1);
+        }
+        
+        #saveSettingsBtn:hover {
+            background: linear-gradient(110deg, #0051d5 0%, #0041b5 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3), 0 4px 12px rgba(0, 122, 255, 0.15);
+        }
+        
+        #saveSettingsBtn:active {
+            background: linear-gradient(110deg, #0041b5 0%, #0031a5 100%);
+            transform: translateY(0);
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>设置</h1>
+
+        <div class="setting-group">
+            <div class="setting-title">存储设置</div>
+            <div class="setting-description">选择保存复制历史记录的位置</div>
+            <button id="chooseFolderBtn">选择文件夹</button>
+            <div class="save-path" id="savePath">未选择文件夹</div>
+            <div class="status" id="folderStatus"></div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-title">历史记录</div>
+            <div class="setting-description">管理您的复制历史记录设置</div>
+            <div class="number-input-group">
+                <label>最大记录数</label>
+                <input type="number" id="maxHistoryItems" min="10" max="10000" value="1000">
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="autoSave" checked>
+                <label for="autoSave">自动保存复制内容</label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-title">通知设置</div>
+            <div class="setting-description">配置通知偏好设置</div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="showNotification" checked>
+                <label for="showNotification">显示成功通知</label>
+            </div>
+        </div>
+
+        <button id="saveSettingsBtn">保存更改</button>
+        <div class="status" id="saveStatus"></div>
+        
+        <div style="margin-top: 60px; padding-top: 32px; border-top: 1px solid #f0f0f0; text-align: center;">
+            <div style="margin-bottom: 16px;">
+                <a href="mailto:fengakon@qq.com" style="color: #007aff; text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: -0.016em;">
+                    📧 反馈建议：fengakon@qq.com
+                </a>
+            </div>
+            <div style="color: #86868b; font-size: 12px; font-weight: 400; letter-spacing: -0.016em; line-height: 1.4;">
+                <div>© 2025 复制记录板插件</div>
+                <div style="margin-top: 4px;">制作：阿肯</div>
+                <div style="margin-top: 4px;">版本：1.0.0</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="options.js"></script>
+</body>
+</html>
