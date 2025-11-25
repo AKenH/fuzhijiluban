@@ -6,118 +6,128 @@ class CopyRecorder {
         this.init();
     }
 
-    // 检查Chrome API是否可用
+    init() {
+        if (this.isChromeRuntimeAvailable()) {
+            // 只在点击非按钮区域时隐藏按钮
+            document.addEventListener('mousedown', (e) => {
+                if (!this.copyButton || !this.copyButton.contains(e.target)) {
+                    this.hideButton();
+                }
+            });
+
+            // 监听选择事件
+            document.addEventListener('mouseup', this.handleSelection.bind(this));
+
+            // 全局复制事件监听 - 自动捕获所有文本复制操作
+            this.setupGlobalCopyListener();
+        } else {
+            console.warn('Chrome Runtime API不可用，扩展功能受限');
+        }
+    }
+
+    // 检查Chrome API是否可用（增强版）
     isChromeRuntimeAvailable() {
         try {
-            return typeof chrome !== 'undefined' &&
-                   chrome.runtime &&
-                   chrome.runtime.id && // 检查扩展ID是否存在
-                   chrome.runtime.sendMessage &&
-                   !chrome.runtime.lastError;
-        } catch (error) {
+            if (typeof chrome === 'undefined') return false;
+            if (!chrome.runtime) return false;
+
+            // 核心检查：访问 runtime.id 会在上下文失效时抛出异常
+            const extensionId = chrome.runtime.id;
+            if (!extensionId) return false;
+
+            if (typeof chrome.runtime.sendMessage !== 'function') return false;
+
+            return true;
+        } catch (e) {
+            console.log('Runtime 上下文检测失败:', e.message);
             return false;
         }
     }
 
-    // 安全发送消息到background script
+    // 发送消息到后台（增强错误处理）
     async sendToBackground(message) {
-        try {
-            if (this.isChromeRuntimeAvailable()) {
-                return new Promise((resolve) => {
-                    const timeoutId = setTimeout(() => {
-                        console.warn('消息发送超时');
-                        resolve({ status: 'timeout', error: '消息发送超时' });
-                    }, 3000);
+        if (!this.isChromeRuntimeAvailable()) {
+            console.warn('⚠️ Chrome Runtime 不可用，可能需要刷新页面');
+            return { status: 'error', error: 'Runtime unavailable' };
+        }
 
-                    chrome.runtime.sendMessage(message, (response) => {
-                        clearTimeout(timeoutId);
-                        
-                        if (chrome.runtime.lastError) {
-                            const errorMessage = chrome.runtime.lastError.message;
-                            console.warn('Background script通信错误:', errorMessage);
-                            
-                            // 如果是扩展上下文失效，尝试使用本地存储
-                            if (errorMessage.includes('Extension context invalidated')) {
-                                this.saveToLocalStorage(message);
-                                resolve({ status: 'fallback', error: '使用本地存储备份' });
-                            } else {
-                                resolve({ status: 'error', error: errorMessage });
-                            }
-                        } else {
-                            resolve(response || { status: 'success' });
+        return new Promise((resolve) => {
+            try {
+                chrome.runtime.sendMessage(message, (response) => {
+                    if (chrome.runtime.lastError) {
+                        const errorMsg = chrome.runtime.lastError.message;
+                        console.warn('发送消息失败:', errorMsg);
+
+                        if (errorMsg.includes('Extension context invalidated')) {
+                            console.log('💡 提示：扩展已重新加载，请刷新此页面以恢复功能');
                         }
-                    });
+
+                        resolve({ status: 'error', error: errorMsg });
+                    } else {
+                        resolve(response || { status: 'success' });
+                    }
                 });
-            } else {
-                console.warn('Chrome runtime API不可用，使用本地存储');
-                this.saveToLocalStorage(message);
-                return { status: 'fallback', error: '使用本地存储备份' };
-            }
-        } catch (error) {
-            console.error('发送消息到background失败:', error);
-            // 尝试使用本地存储作为备选方案
-            this.saveToLocalStorage(message);
-            return { status: 'fallback', error: '使用本地存储备份' };
-        }
-    }
-
-    // 本地存储备选方案
-    saveToLocalStorage(message) {
-        try {
-            const historyKey = 'copyHistory_backup';
-            const existingData = localStorage.getItem(historyKey);
-            let history = [];
-            
-            if (existingData) {
-                try {
-                    history = JSON.parse(existingData);
-                } catch (parseError) {
-                    console.warn('解析本地历史记录失败，创建新记录');
-                    history = [];
-                }
-            }
-            
-            // 添加新记录
-            history.unshift({
-                text: message.text,
-                source: message.source,
-                timestamp: message.timestamp,
-                favorite: false
-            });
-            
-            // 限制记录数量
-            if (history.length > 1000) {
-                history = history.slice(0, 1000);
-            }
-            
-            localStorage.setItem(historyKey, JSON.stringify(history));
-            console.log('使用本地存储保存复制记录成功');
-        } catch (localError) {
-            console.error('本地存储也失败:', localError);
-        }
-    }
-
-    init() {
-        // 监听鼠标抬起事件，检测文字选择
-        document.addEventListener('mouseup', this.handleSelection.bind(this));
-        
-        // 只在点击非按钮区域时隐藏按钮
-        document.addEventListener('mousedown', (e) => {
-            if (!this.copyButton || !this.copyButton.contains(e.target)) {
-                this.hideButton();
+            } catch (error) {
+                console.warn('发送消息异常:', error.message);
+                resolve({ status: 'error', error: error.message });
             }
         });
     }
 
+    // 全局复制监听器 - 自动检测所有文本复制操作
+    setupGlobalCopyListener() {
+        document.addEventListener('copy', async (e) => {
+            setTimeout(async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.trim()) {
+                        const trimmedText = text.trim();
+
+                        const result = await this.sendToBackground({
+                            type: 'SAVE_COPY',
+                            data: {
+                                text: trimmedText,
+                                source: window.location.hostname,
+                                timestamp: new Date().toISOString(),
+                                type: 'text'
+                            }
+                        });
+
+                        if (result.status === 'success') {
+                            console.log('✅ 自动检测到文本复制:', trimmedText.substring(0, 50) + (trimmedText.length > 50 ? '...' : ''));
+                        }
+                    }
+                } catch (error) {
+                    console.log('读取剪贴板失败，尝试降级方案:', error);
+                    const selection = window.getSelection();
+                    const selectedText = selection.toString().trim();
+                    if (selectedText) {
+                        const result = await this.sendToBackground({
+                            type: 'SAVE_COPY',
+                            data: {
+                                text: selectedText,
+                                source: window.location.hostname,
+                                timestamp: new Date().toISOString(),
+                                type: 'text'
+                            }
+                        });
+
+                        if (result.status === 'success') {
+                            console.log('✅ 使用选中文本作为降级方案');
+                        }
+                    }
+                }
+            }, 100);
+        });
+    }
+
     handleSelection(event) {
-        // 使用setTimeout确保选择完成后再处理
         setTimeout(() => {
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
 
             if (selectedText.length > 0) {
                 this.selectionText = selectedText;
-                console.log('选中文本:', selectedText);
                 this.showCopyButton(event);
             } else {
                 this.hideButton();
@@ -126,10 +136,8 @@ class CopyRecorder {
     }
 
     showCopyButton(event) {
-        // 移除现有的按钮
         this.hideButton();
 
-        // 创建复制按钮容器
         this.copyButton = document.createElement('div');
         this.copyButton.innerHTML = '复制';
         this.copyButton.style.cssText = `
@@ -154,11 +162,9 @@ class CopyRecorder {
             -webkit-backdrop-filter: blur(10px);
         `;
 
-        // 定位按钮到鼠标位置
         this.copyButton.style.left = (event.pageX + 10) + 'px';
         this.copyButton.style.top = (event.pageY + 10) + 'px';
 
-        // 添加悬停效果
         this.copyButton.addEventListener('mouseenter', () => {
             this.copyButton.style.background = 'linear-gradient(135deg, #007aff 0%, #0051d5 100%)';
             this.copyButton.style.color = '#ffffff';
@@ -175,7 +181,6 @@ class CopyRecorder {
             this.copyButton.style.boxShadow = '0 4px 16px rgba(0, 122, 255, 0.15), 0 2px 8px rgba(0, 122, 255, 0.08)';
         });
 
-        // 添加点击事件
         this.copyButton.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -184,7 +189,6 @@ class CopyRecorder {
 
         document.body.appendChild(this.copyButton);
 
-        // 触发入场动画
         setTimeout(() => {
             if (this.copyButton) {
                 this.copyButton.style.opacity = '1';
@@ -192,7 +196,6 @@ class CopyRecorder {
             }
         }, 10);
 
-        // 4秒后自动隐藏
         setTimeout(() => this.hideButton(), 4000);
     }
 
@@ -204,72 +207,54 @@ class CopyRecorder {
     }
 
     async copyToClipboard(event) {
-        // 阻止事件冒泡和默认行为
         if (event) {
             event.preventDefault();
             event.stopPropagation();
         }
 
         try {
-            // 使用保存的选中文本，避免选择丢失
             const selectedText = this.selectionText || window.getSelection().toString().trim();
 
             if (selectedText) {
-                console.log('正在复制文本:', selectedText);
-
                 // 先执行复制操作
+                let copySuccess = false;
                 try {
                     await navigator.clipboard.writeText(selectedText);
-                    console.log('使用现代API复制成功');
+                    copySuccess = true;
                 } catch (clipboardError) {
                     console.warn('现代API复制失败，使用降级方案:', clipboardError);
-                    // 如果现代API失败，立即使用降级方案
-                    await this.fallbackCopyToClipboard(selectedText);
+                    try {
+                        await this.fallbackCopyToClipboard(selectedText);
+                        copySuccess = true;
+                    } catch (fallbackError) {
+                        console.error('降级复制也失败:', fallbackError);
+                    }
                 }
 
-                // 复制成功后再尝试保存记录（不阻塞复制功能）
-                try {
-                    const saveResult = await this.sendToBackground({
-                        type: 'SAVE_COPY',
+                if (!copySuccess) {
+                    this.showErrorMessage('复制失败，请重试');
+                    return;
+                }
+
+                // 复制成功后，保存到历史记录
+                await this.sendToBackground({
+                    type: 'SAVE_COPY',
+                    data: {
                         text: selectedText,
                         source: window.location.hostname,
-                        timestamp: new Date().toISOString()
-                    });
-
-                    if (saveResult.status === 'success') {
-                        console.log('复制记录已保存');
-                    } else if (saveResult.status === 'fallback') {
-                        console.log('使用本地存储备份保存记录');
-                    } else {
-                        console.warn('保存复制记录失败:', saveResult.error || 'API不可用');
+                        timestamp: new Date().toISOString(),
+                        type: 'text'
                     }
-                } catch (saveError) {
-                    console.warn('保存记录时出错，但复制成功:', saveError);
-                }
+                });
 
-                // 显示复制成功提示
                 this.showSuccessMessage();
-
-                // 延迟隐藏按钮，让用户看到成功反馈
                 setTimeout(() => this.hideButton(), 500);
             } else {
-                console.warn('没有找到要复制的文本');
                 this.showErrorMessage('没有选中文本');
             }
         } catch (error) {
             console.error('复制过程出错:', error);
-
-            // 根据错误类型显示不同的错误信息
-            let errorMessage = '复制失败';
-            if (error.message && error.message.includes('Extension context invalidated')) {
-                errorMessage = '插件需要重新加载，请刷新页面后重试';
-            } else if (error.message && error.message.includes('clipboard')) {
-                errorMessage = '剪贴板访问失败，请检查浏览器权限设置';
-            } else if (error.message) {
-                errorMessage = `复制失败: ${error.message}`;
-            }
-
-            this.showErrorMessage(errorMessage);
+            this.showErrorMessage('复制出错: ' + error.message);
         }
     }
 
@@ -291,21 +276,18 @@ class CopyRecorder {
             textArea.setAttribute('readonly', '');
             document.body.appendChild(textArea);
 
-            // 选中文本
             textArea.focus();
             textArea.select();
-            textArea.setSelectionRange(0, 99999); // 移动设备兼容
+            textArea.setSelectionRange(0, 99999);
 
             try {
                 const successful = document.execCommand('copy');
-                console.log('降级复制结果:', successful);
                 if (successful) {
                     resolve(selectedText);
                 } else {
                     reject(new Error('execCommand复制失败'));
                 }
             } catch (err) {
-                console.error('降级复制异常:', err);
                 reject(err);
             } finally {
                 if (textArea.parentNode) {
@@ -324,7 +306,6 @@ class CopyRecorder {
     }
 
     showMessage(message, type = 'success') {
-        // 移除现有消息
         const existingMsg = document.querySelector('.copy-notification');
         if (existingMsg) {
             existingMsg.remove();
@@ -356,13 +337,11 @@ class CopyRecorder {
 
         document.body.appendChild(messageEl);
 
-        // 入场动画
         setTimeout(() => {
             messageEl.style.opacity = '1';
             messageEl.style.transform = 'translateX(0) scale(1)';
         }, 10);
 
-        // 3秒后消失
         setTimeout(() => {
             messageEl.style.opacity = '0';
             messageEl.style.transform = 'translateX(100px) scale(0.8)';
@@ -380,14 +359,3 @@ const copyRecorder = new CopyRecorder();
 
 // 添加到全局作用域以便调试
 window.copyRecorder = copyRecorder;
-
-// 添加键盘快捷键支持 (Ctrl+C 或者 Command+C)
-document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-        const selection = window.getSelection();
-        const selectedText = selection.toString().trim();
-        if (selectedText.length > 0) {
-            console.log('键盘复制检测到文本:', selectedText);
-        }
-    }
-});
